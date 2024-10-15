@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package api;
+
+enum Shape {
+    Biphasic = 0;
+    BiphasicWithInterphaseDelay = 1;
+    Triphasic = 2;
+}
+
+enum Polarity {
+    NegativeFirst = 0;
+    PositiveFirst = 1;
+}
+
+enum TriggerEdgeOrLevel {
+    Edge = 0;
+    Level = 1;
+}
+
+enum TriggerHighOrLow {
+    High = 0;
+    Low = 1;
+}
+
+enum PulseOrTrain {
+    SinglePulse = 0;
+    PulseTrain = 1;
+}
+
+message StimParam {
+    uint32 channel = 1;
+    optional Shape shape = 2;
+    optional Polarity polarity = 3;
+    optional uint32 source = 4;
+    optional TriggerEdgeOrLevel triggeredgeorlevel = 5;
+    optional TriggerHighOrLow triggerhighorlow = 6;
+    optional PulseOrTrain pulse = 7;
+    optional bool stimenabled = 8;
+    optional bool maintainampsettle = 9;
+    optional bool enableampsettle = 10;
+    optional bool enablechargerecovery = 11;
+    optional float firstphasedurationmicroseconds = 12;
+    optional float secondphasedurationmicroseconds = 13;
+    optional float interphasedelaymicroseconds = 14;
+    optional float firstphaseamplitudemicroamps = 15;
+    optional float secondphaseamplitudemicroamps = 16;
+    optional float posttriggerdelaymicroseconds = 17;
+    optional float pulsetrainperiodmicroseconds = 18;
+    optional float refractoryperiodmicroseconds = 19;
+    optional float prestimampsettlemicroseconds = 20;
+    optional float poststimampsettlemicroseconds = 21;
+    optional float poststimchargerecovonmicroseconds = 22;
+    optional float poststimchargerecovoffmicroseconds = 23;
+    optional uint32 numberofstimpulses = 24;
+}

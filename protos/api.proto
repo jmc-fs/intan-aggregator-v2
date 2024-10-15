@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package api;
+
+import "stimparam.proto";
+
+message StatusReply {
+    bool status = 1;
+    optional string message = 2;
+}
+
+message SaveInfo {
+  repeated uint32 channels = 1;
+  string tag = 2;
+  bool triggers = 3;
+}
+
+message CoefThreshold {
+    uint32 channel = 1;
+    float coef_threshold = 2;
+}
+
+message CoefThresholds {
+    repeated CoefThreshold chan_threshold = 1;
+}
+
+message TriggersInfo {
+    repeated uint32 tags = 1;
+}
+
+message VarThreshold {
+    uint32 channel = 1;
+    bool update = 2;
+}
+
+message VarThresholds {
+    repeated VarThreshold update_chan = 1;
+}
+
+enum Port {
+    A = 0;
+    B = 1;
+    C = 2;
+    D = 3;
+}
+
+message ExpName {
+    Port port = 1;
+    string name = 2;
+}
+
+message ExpNames {
+    repeated ExpName update_expname = 1;
+}
+
+message Empty {}
+
+message FloatArrayChunk {
+    repeated float data = 1;
+}
+
+message ChannelsArray {
+    repeated uint32 channels = 1;
+}
+
+message DurationCount {
+    uint32 time = 1;
+}
+
+message CountArray {
+    repeated uint32 counts = 1;
+}
+
+message DebugInfo {
+    float raw_queue = 1;
+    uint32 loop_ms = 2;
+}
+
+service IntanService {
+    rpc start (Empty) returns (StatusReply);
+    rpc stop (Empty) returns (StatusReply);
+    rpc startrecording (SaveInfo) returns (StatusReply);
+    rpc stoprecording (Empty) returns (StatusReply);
+    rpc coefthresholds (CoefThresholds) returns (StatusReply);
+    rpc triggertags(TriggersInfo) returns (StatusReply);
+    rpc varthreshold(VarThresholds) returns (StatusReply);
+    rpc expname(ExpNames) returns (StatusReply);
+    rpc streamhaar (ChannelsArray) returns (stream FloatArrayChunk);
+    rpc stimparam(StimParam) returns (StatusReply);
+    rpc updatestimparam(ChannelsArray) returns (StatusReply);
+    rpc count(DurationCount) returns (CountArray);
+    rpc debuginfo(Empty) returns (DebugInfo);
+    rpc channelavailable (Empty) returns (ChannelsArray);
+}

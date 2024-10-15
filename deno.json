@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts",
+    "proto": "npx proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=proto/ protos/*.proto"
+  }
+}
