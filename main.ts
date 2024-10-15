@@ -107,17 +107,17 @@ router.get("/api", (context) => {
   context.response.body = { message: "Hello, REST API!" };
 });
 
-// let emitCount = 0;
-// let startTime = Date.now();
+let callbackCount = 0;
+let startTime = Date.now();
 
-// setInterval(() => {
-//   const currentTime = Date.now();
-//   const elapsedTime = (currentTime - startTime) / 1000; // Convert to seconds
-//   const emitRate = emitCount / elapsedTime; // Calculate emits per second
-//   log.info(`Emit rate: ${emitRate.toFixed(2)} times per second`);
-//   emitCount = 0; // Reset the counter
-//   startTime = currentTime; // Reset the start time
-// }, 5000); // 5 seconds interval
+setInterval(() => {
+  const currentTime = Date.now();
+  const elapsedTime = (currentTime - startTime) / 1000; // Convert to seconds
+  const callRate = callbackCount / elapsedTime; // Calculate calls per second
+  console.log(`Callback rate: ${callRate.toFixed(2)} times per second`);
+  callbackCount = 0; // Reset the counter
+  startTime = currentTime; // Reset the start time
+}, 5000); // 5 seconds interval
 
 io.on("connection", (socket) => {
   log.debug(`socket ${socket.id} connected`);
@@ -134,6 +134,7 @@ io.on("connection", (socket) => {
       let accumulationCount = 0;
 
       controller.addCallback(socket.id, (data) => {
+        
         const buffer_size_channel = data.length / total_channels;
 
         // Loop through the indices in intan_chan.channel_index
@@ -150,8 +151,8 @@ io.on("connection", (socket) => {
 
         // Emit the accumulated buffer when accumulationCount reaches numberX
         if (accumulationCount >= NUMBER_X_SAMPLE) {
+          callbackCount++;
           socket.emit('data', accumulatedBuffer.flat());
-          //emitCount++; // Increment the counter
           accumulatedBuffer = Array(intan_chan.channel_index.length).fill([]); // Reset the buffer
           accumulationCount = 0;  // Reset the count
         }
