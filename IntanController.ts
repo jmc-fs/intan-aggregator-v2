@@ -8,6 +8,7 @@ export interface IntanController {
     channels: Array<number>,
     default_mea: number,
     default_electrodes: Array<number>,
+    maintenance: boolean,
 }
 
 export interface IntanChannel {

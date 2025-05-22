@@ -1,4 +1,4 @@
-import { Application, Router } from "https://deno.land/x/oak/mod.ts";
+import { Application, Router, Context } from "https://deno.land/x/oak/mod.ts";
 import { MongoClient } from "https://deno.land/x/mongo@v0.31.1/mod.ts";
 import { Server } from "https://deno.land/x/socket_io@0.2.0/mod.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -16,7 +16,9 @@ await log.setup({
     console: new log.ConsoleHandler("DEBUG"),
     file: new log.FileHandler("WARN", {
       filename: "./logs.txt",
-      formatter: "{datetime} {levelName} {msg}",
+      formatter: (logRecord) => {
+        return `${logRecord.datetime} ${logRecord.levelName} ${logRecord.msg}`;
+      },
     }),
   },
   loggers: {
@@ -43,13 +45,13 @@ const router = new Router();
 
 const activeControllers = new Array<IntanClient>();
 
-router.get("/sample", (context) => {
+router.get("/sample", (context: Context) => {
   context.response.body = { numbersample: 160*NUMBER_X_SAMPLE };
 });
 
 let lock: Promise<void> | null = null;
 
-router.get("/controllers", async (context) => {
+router.get("/controllers", async (context: Context) => {
   // Wait for the current lock to resolve if it exists
   while (lock) {
     await lock;
@@ -62,27 +64,39 @@ router.get("/controllers", async (context) => {
 
   try {
     const controllers: IntanController[] = await controllersCollection.find({}).toArray();
-
+    // Ensure every controller has a maintenance attribute
+    controllers.forEach(controller => {
+      if (controller.maintenance === undefined) {
+        controller.maintenance = false; // or your preferred default
+      }
+    });
     // Use Promise.all to wait for all async operations inside the loop
     await Promise.all(controllers.map(async (controller) => {
       const existingControllerIndex = activeControllers.findIndex(activeController => 
         activeController.serverAddress === controller.address
       );
-
+      
       if (controller.online) {
         if (existingControllerIndex === -1) {
           const grpcClient = new IntanClient(controller.address, controller._id.toString());
           await grpcClient.loadProtobuf();
           grpcClient.channels = await grpcClient.channelAvailable();
           if (grpcClient.channels.length == 0) {
-            controller.online = false;
+            controller.maintenance = true;
+            grpcClient.maintenance = true;
+            const numberOfChannels = 32;
+            grpcClient.channels = [numberOfChannels,numberOfChannels,numberOfChannels,numberOfChannels];
+            grpcClient.generateRandomDataStream(23.4, numberOfChannels*grpcClient.channels.length);
+            activeControllers.push(grpcClient);
           } else {
+            controller.maintenance = false;
             grpcClient.startStreamData();
             activeControllers.push(grpcClient);
           }
           controller.channels = grpcClient.channels;
         } else {
           controller.channels = activeControllers[existingControllerIndex].channels;
+          controller.maintenance = activeControllers[existingControllerIndex].maintenance;
           activeControllers[existingControllerIndex].startStreamData();
         }
       } else {
@@ -95,6 +109,10 @@ router.get("/controllers", async (context) => {
     }));
 
     // Now set the response body after all async operations are done
+    log.debug(`Sending ${controllers.length} controllers to client`);
+    controllers.forEach((controller, idx) => {
+      log.debug(`Controller[${idx}]: ${JSON.stringify(controller)}`);
+    });
     context.response.body = { controllers };
   } finally {
     // Resolve the lock to allow the next request to proceed
@@ -106,18 +124,6 @@ router.get("/controllers", async (context) => {
 router.get("/api", (context) => {
   context.response.body = { message: "Hello, REST API!" };
 });
-
-let callbackCount = 0;
-let startTime = Date.now();
-
-setInterval(() => {
-  const currentTime = Date.now();
-  const elapsedTime = (currentTime - startTime) / 1000; // Convert to seconds
-  const callRate = callbackCount / elapsedTime; // Calculate calls per second
-  console.log(`Callback rate: ${callRate.toFixed(2)} times per second`);
-  callbackCount = 0; // Reset the counter
-  startTime = currentTime; // Reset the start time
-}, 5000); // 5 seconds interval
 
 io.on("connection", (socket) => {
   log.debug(`socket ${socket.id} connected`);
@@ -151,7 +157,6 @@ io.on("connection", (socket) => {
 
         // Emit the accumulated buffer when accumulationCount reaches numberX
         if (accumulationCount >= NUMBER_X_SAMPLE) {
-          callbackCount++;
           socket.emit('data', accumulatedBuffer.flat());
           accumulatedBuffer = Array(intan_chan.channel_index.length).fill([]); // Reset the buffer
           accumulationCount = 0;  // Reset the count

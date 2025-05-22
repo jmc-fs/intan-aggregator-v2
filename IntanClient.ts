@@ -16,6 +16,7 @@ export class IntanClient {
     serverAddress: string;
     id_intan: string;
     channels = new Array<number>();
+    maintenance = false;
 
     constructor(serverAddress: string, idmea: string) {
         this.serverAddress = serverAddress;
@@ -87,6 +88,27 @@ export class IntanClient {
                 log.error('stream error:', this.serverAddress, err);
             })
         }
+        this.isStartStream = false;
+    }
+
+    generateRandomDataStream(interval: number = 1000, numberOfChannels: number = 32) {
+        if (this.isStartStream)
+            return;
+        this.isStartStream = true;
+    
+        const generateData = () => {
+            const randomData = Array.from({ length: 160*numberOfChannels }, () => (Math.random()-0.5) * 100); // Generate 100 random numbers
+            this.onDataCallbacks.forEach(({ callback }) => callback(randomData));
+        };
+    
+        const intervalId = setInterval(generateData, interval);
+    
+        // Store the intervalId to clear it later
+        this.stream = {
+            cancel: () => clearInterval(intervalId)
+        };
+    
+        log.info(`Random data stream started for ${this.serverAddress}`);
         this.isStartStream = false;
     }
 
