@@ -13,5 +13,6 @@ export interface IntanController {
 
 export interface IntanChannel {
     id_intan: string,
+    mea_index: number,
     channel_index: Array<number>
 }

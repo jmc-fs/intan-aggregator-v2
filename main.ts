@@ -86,7 +86,8 @@ router.get("/controllers", async (context: Context) => {
             grpcClient.maintenance = true;
             const numberOfChannels = 32;
             grpcClient.channels = [numberOfChannels,numberOfChannels,numberOfChannels,numberOfChannels];
-            grpcClient.generateRandomDataStream(23.4, numberOfChannels*grpcClient.channels.length);
+            //grpcClient.generateRandomDataStream(23.4, numberOfChannels*grpcClient.channels.length);
+            grpcClient.streamDataFromFile("./wavelet_signal.bin", 23.4, numberOfChannels*grpcClient.channels.length);
             activeControllers.push(grpcClient);
           } else {
             controller.maintenance = false;
@@ -146,7 +147,7 @@ io.on("connection", (socket) => {
         // Loop through the indices in intan_chan.channel_index
         intan_chan.channel_index.forEach((index, i) => {
           // Calculate the start and end of the data for this channel
-          const start = index * buffer_size_channel;
+          const start = index * buffer_size_channel+ intan_chan.mea_index * 32 * buffer_size_channel;
           const end = start + buffer_size_channel;
 
           // Accumulate the data for this channel

@@ -91,6 +91,42 @@ export class IntanClient {
         this.isStartStream = false;
     }
 
+    async readFloat32Array(filePath: string): Promise<Float32Array> {
+        const buf = await Deno.readFile(filePath);
+        return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+    }
+
+    async streamDataFromFile(filePath: string, interval: number = 1000, nb_channel: number = 32) {
+        if (this.isStartStream) return;
+        this.isStartStream = true;
+
+        const data = await Deno.readFile(filePath);
+        const floatData = new Float32Array(data.buffer, data.byteOffset, data.byteLength / 4);
+        const channel_length = floatData.length / nb_channel;
+        const chunkSizePerChannel = 160;
+
+        let offset = 0;
+        const sendChunk = () => {
+            if (offset + chunkSizePerChannel > channel_length) offset = 0; // Loop if at end
+
+            // Gather chunkSizePerChannel samples from each channel
+            const chunk: number[] = [];
+            for (let ch = 0; ch < nb_channel; ch++) {
+                const channelOffset = ch * channel_length + offset;
+                const channelData = floatData.subarray(channelOffset, channelOffset + chunkSizePerChannel);
+                chunk.push(...channelData);
+            }
+
+            this.onDataCallbacks.forEach(({ callback }) => callback(chunk));
+            offset += chunkSizePerChannel;
+        };
+
+        const intervalId = setInterval(sendChunk, interval);
+        this.stream = { cancel: () => clearInterval(intervalId) };
+        log.info(`File data stream started for ${this.serverAddress}`);
+        this.isStartStream = false;
+    }
+
     generateRandomDataStream(interval: number = 1000, numberOfChannels: number = 32) {
         if (this.isStartStream)
             return;
