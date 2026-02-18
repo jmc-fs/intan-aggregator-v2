@@ -18,8 +18,7 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"justjavac.vscode-deno-extensionpack",
-				"phind.phind"
+				"justjavac.vscode-deno-extensionpack"
 			]
 		}
 	}
