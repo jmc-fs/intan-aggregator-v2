@@ -39,7 +39,7 @@ const io = new Server({
 const mongoUri =
   Deno.env.get("MONGODB_URI") ??
   "mongodb://intanagg:Rq3g25ihmXeK2Q8@172.30.2.132:27018,172.30.2.139:27018/intanservice?replicaSet=rs0&authSource=intanservice";
-const mongoDbName = Deno.env.get("MONGODB_DB") ?? "lab";
+const mongoDbName = Deno.env.get("MONGODB_DB") ?? "intanservice";
 
 const client = new MongoClient();
 await client.connect(mongoUri);
