@@ -59,6 +59,44 @@ message FloatArrayChunk {
     repeated float data = 1;
 }
 
+message TriggerWindowRequest {
+    repeated uint32 triggers = 1;
+    uint32 duration_ms = 2;
+}
+
+message TriggerWindowChunk {
+    uint32 trigger = 1;
+    uint64 start_time_us = 2;
+    uint32 samples_per_channel = 3;
+    uint32 total_channels = 4;
+    repeated float data = 5;
+}
+
+message TriggerSpikeRequest {
+    repeated uint32 triggers = 1;
+    uint32 duration_ms = 2;
+    bool include_times = 3;
+}
+
+message ChannelSpikeTimes {
+    uint32 channel = 1;
+    repeated uint64 timestamps_us = 2;
+}
+
+message ChannelSpikeAmplitudes {
+    uint32 channel = 1;
+    repeated float amplitudes = 2;
+}
+
+message TriggerSpikeWindow {
+    uint32 trigger = 1;
+    uint64 start_time_us = 2;
+    repeated uint32 counts = 3;
+    repeated ChannelSpikeTimes spike_times = 4;
+    repeated float max_amplitudes = 5;
+    repeated ChannelSpikeAmplitudes spike_amplitudes = 6;
+}
+
 message ChannelsArray {
     repeated uint32 channels = 1;
 }
@@ -86,8 +124,12 @@ service IntanService {
     rpc varthreshold(VarThresholds) returns (StatusReply);
     rpc expname(ExpNames) returns (StatusReply);
     rpc streamhaar (ChannelsArray) returns (stream FloatArrayChunk);
+    rpc listenaftertrigger (TriggerWindowRequest) returns (stream TriggerWindowChunk);
+    rpc listenaftertriggerspikes (TriggerSpikeRequest) returns (stream TriggerSpikeWindow);
     rpc stimparam(StimParam) returns (StatusReply);
     rpc updatestimparam(ChannelsArray) returns (StatusReply);
+    // Disable all stimulation channels and upload the parameters on the Intan device
+    rpc disableallstim(Empty) returns (StatusReply);
     rpc count(DurationCount) returns (CountArray);
     rpc debuginfo(Empty) returns (DebugInfo);
     rpc channelavailable (Empty) returns (ChannelsArray);

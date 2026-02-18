@@ -9,6 +9,8 @@ type SubtypeConstructor<Constructor extends new (...args: any) => any, Subtype> 
 
 export interface ProtoGrpcType {
   api: {
+    ChannelSpikeAmplitudes: MessageTypeDefinition
+    ChannelSpikeTimes: MessageTypeDefinition
     ChannelsArray: MessageTypeDefinition
     CoefThreshold: MessageTypeDefinition
     CoefThresholds: MessageTypeDefinition
@@ -29,6 +31,10 @@ export interface ProtoGrpcType {
     StimParam: MessageTypeDefinition
     TriggerEdgeOrLevel: EnumTypeDefinition
     TriggerHighOrLow: EnumTypeDefinition
+    TriggerSpikeRequest: MessageTypeDefinition
+    TriggerSpikeWindow: MessageTypeDefinition
+    TriggerWindowChunk: MessageTypeDefinition
+    TriggerWindowRequest: MessageTypeDefinition
     TriggersInfo: MessageTypeDefinition
     VarThreshold: MessageTypeDefinition
     VarThresholds: MessageTypeDefinition

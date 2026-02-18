@@ -13,6 +13,10 @@ import type { FloatArrayChunk as _api_FloatArrayChunk, FloatArrayChunk__Output a
 import type { SaveInfo as _api_SaveInfo, SaveInfo__Output as _api_SaveInfo__Output } from '../api/SaveInfo';
 import type { StatusReply as _api_StatusReply, StatusReply__Output as _api_StatusReply__Output } from '../api/StatusReply';
 import type { StimParam as _api_StimParam, StimParam__Output as _api_StimParam__Output } from '../api/StimParam';
+import type { TriggerSpikeRequest as _api_TriggerSpikeRequest, TriggerSpikeRequest__Output as _api_TriggerSpikeRequest__Output } from '../api/TriggerSpikeRequest';
+import type { TriggerSpikeWindow as _api_TriggerSpikeWindow, TriggerSpikeWindow__Output as _api_TriggerSpikeWindow__Output } from '../api/TriggerSpikeWindow';
+import type { TriggerWindowChunk as _api_TriggerWindowChunk, TriggerWindowChunk__Output as _api_TriggerWindowChunk__Output } from '../api/TriggerWindowChunk';
+import type { TriggerWindowRequest as _api_TriggerWindowRequest, TriggerWindowRequest__Output as _api_TriggerWindowRequest__Output } from '../api/TriggerWindowRequest';
 import type { TriggersInfo as _api_TriggersInfo, TriggersInfo__Output as _api_TriggersInfo__Output } from '../api/TriggersInfo';
 import type { VarThresholds as _api_VarThresholds, VarThresholds__Output as _api_VarThresholds__Output } from '../api/VarThresholds';
 
@@ -37,10 +41,21 @@ export interface IntanServiceClient extends grpc.Client {
   debuginfo(argument: _api_Empty, options: grpc.CallOptions, callback: grpc.requestCallback<_api_DebugInfo__Output>): grpc.ClientUnaryCall;
   debuginfo(argument: _api_Empty, callback: grpc.requestCallback<_api_DebugInfo__Output>): grpc.ClientUnaryCall;
   
+  disableallstim(argument: _api_Empty, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
+  disableallstim(argument: _api_Empty, metadata: grpc.Metadata, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
+  disableallstim(argument: _api_Empty, options: grpc.CallOptions, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
+  disableallstim(argument: _api_Empty, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
+  
   expname(argument: _api_ExpNames, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
   expname(argument: _api_ExpNames, metadata: grpc.Metadata, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
   expname(argument: _api_ExpNames, options: grpc.CallOptions, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
   expname(argument: _api_ExpNames, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
+  
+  listenaftertrigger(argument: _api_TriggerWindowRequest, metadata: grpc.Metadata, options?: grpc.CallOptions): grpc.ClientReadableStream<_api_TriggerWindowChunk__Output>;
+  listenaftertrigger(argument: _api_TriggerWindowRequest, options?: grpc.CallOptions): grpc.ClientReadableStream<_api_TriggerWindowChunk__Output>;
+  
+  listenaftertriggerspikes(argument: _api_TriggerSpikeRequest, metadata: grpc.Metadata, options?: grpc.CallOptions): grpc.ClientReadableStream<_api_TriggerSpikeWindow__Output>;
+  listenaftertriggerspikes(argument: _api_TriggerSpikeRequest, options?: grpc.CallOptions): grpc.ClientReadableStream<_api_TriggerSpikeWindow__Output>;
   
   start(argument: _api_Empty, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
   start(argument: _api_Empty, metadata: grpc.Metadata, callback: grpc.requestCallback<_api_StatusReply__Output>): grpc.ClientUnaryCall;
@@ -96,7 +111,13 @@ export interface IntanServiceHandlers extends grpc.UntypedServiceImplementation 
   
   debuginfo: grpc.handleUnaryCall<_api_Empty__Output, _api_DebugInfo>;
   
+  disableallstim: grpc.handleUnaryCall<_api_Empty__Output, _api_StatusReply>;
+  
   expname: grpc.handleUnaryCall<_api_ExpNames__Output, _api_StatusReply>;
+  
+  listenaftertrigger: grpc.handleServerStreamingCall<_api_TriggerWindowRequest__Output, _api_TriggerWindowChunk>;
+  
+  listenaftertriggerspikes: grpc.handleServerStreamingCall<_api_TriggerSpikeRequest__Output, _api_TriggerSpikeWindow>;
   
   start: grpc.handleUnaryCall<_api_Empty__Output, _api_StatusReply>;
   
@@ -123,7 +144,10 @@ export interface IntanServiceDefinition extends grpc.ServiceDefinition {
   coefthresholds: MethodDefinition<_api_CoefThresholds, _api_StatusReply, _api_CoefThresholds__Output, _api_StatusReply__Output>
   count: MethodDefinition<_api_DurationCount, _api_CountArray, _api_DurationCount__Output, _api_CountArray__Output>
   debuginfo: MethodDefinition<_api_Empty, _api_DebugInfo, _api_Empty__Output, _api_DebugInfo__Output>
+  disableallstim: MethodDefinition<_api_Empty, _api_StatusReply, _api_Empty__Output, _api_StatusReply__Output>
   expname: MethodDefinition<_api_ExpNames, _api_StatusReply, _api_ExpNames__Output, _api_StatusReply__Output>
+  listenaftertrigger: MethodDefinition<_api_TriggerWindowRequest, _api_TriggerWindowChunk, _api_TriggerWindowRequest__Output, _api_TriggerWindowChunk__Output>
+  listenaftertriggerspikes: MethodDefinition<_api_TriggerSpikeRequest, _api_TriggerSpikeWindow, _api_TriggerSpikeRequest__Output, _api_TriggerSpikeWindow__Output>
   start: MethodDefinition<_api_Empty, _api_StatusReply, _api_Empty__Output, _api_StatusReply__Output>
   startrecording: MethodDefinition<_api_SaveInfo, _api_StatusReply, _api_SaveInfo__Output, _api_StatusReply__Output>
   stimparam: MethodDefinition<_api_StimParam, _api_StatusReply, _api_StimParam__Output, _api_StatusReply__Output>
