@@ -36,9 +36,14 @@ const io = new Server({
   },
 });
 
+const mongoUri =
+  Deno.env.get("MONGODB_URI") ??
+  "mongodb://intanagg:Rq3g25ihmXeK2Q8@172.30.2.132:27018,172.30.2.139:27018/intanservice?replicaSet=rs0&authSource=intanservice";
+const mongoDbName = Deno.env.get("MONGODB_DB") ?? "lab";
+
 const client = new MongoClient();
-await client.connect("mongodb://intanagg:Rq3g25ihmXeK2Q8@172.30.1.43:27018/intanservice?authSource=intanservice");
-const db = client.database("intanservice");
+await client.connect(mongoUri);
+const db = client.database(mongoDbName);
 const controllersCollection = db.collection<IntanController>("controllers");
 
 const router = new Router();
