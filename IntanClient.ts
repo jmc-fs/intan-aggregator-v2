@@ -12,11 +12,17 @@ export class IntanClient {
     private onDataCallbacks: Array<{ id: string, callback: (data: Array<number>) => void }> = [];
     private stream: any;
     private isStartStream = false;
+    private healthCheckIntervalId: any = null;
 
     serverAddress: string;
     id_intan: string;
     channels = new Array<number>();
     maintenance = false;
+    online = true;
+    recorded_file = "";
+    recorded_nb_channels = 0;
+
+    private maintenanceCallbacks: Array<(status: boolean) => void> = [];
 
     constructor(serverAddress: string, idmea: string) {
         this.serverAddress = serverAddress;
@@ -51,7 +57,7 @@ export class IntanClient {
 
             this.client.channelavailable({}, { deadline }, (err, response) => {
                 if (err) {
-                    log.error('channelAvailable:',err);
+                    log.error(`channelAvailable: ${err}`);
                     resolve(new Array<number>());
                 } else {
                     resolve(response.channels);
@@ -60,33 +66,79 @@ export class IntanClient {
         });
     }
 
+    private startHealthCheck(interval: number = 10000) {
+        if (this.healthCheckIntervalId) return;
+        this.healthCheckIntervalId = setInterval(async () => {
+            try {
+                const channels = await this.channelAvailable();
+                if (!channels.length) {
+                    log.debug(`Health check failed: No channels for ${this.serverAddress} (${this.id_intan})`);
+                    this.setMaintenance(true);
+                    this.stopStreamData();
+                    this.streamRecordedData();
+                }
+            } catch (err) {
+                log.error(`Health check error for ${this.serverAddress} (${this.id_intan}): ${err?.stack || err}`);
+                this.online = false;
+                this.stopStreamData();
+            }
+        }, interval);
+    }
+
+    private stopHealthCheck() {
+        if (this.healthCheckIntervalId) {
+            clearInterval(this.healthCheckIntervalId);
+            this.healthCheckIntervalId = null;
+        }
+    }
+
     startStreamData() {
         if (this.isStartStream)
             return;
         this.isStartStream = true;
         if (this.stream === null) {
             const channels = new Array<number>();
-            for (let i = 0; i<this.channels.length; i++) {
-                for (let j=0; j<this.channels[i]; j++) {
-                    channels.push(j+i*this.channels[i]);
+            for (let i = 0; i < this.channels.length; i++) {
+                for (let j = 0; j < this.channels[i]; j++) {
+                    channels.push(j + i * this.channels[i]);
                 }
             }
-            const request: ChannelsArray = {
-                channels: channels
-            };
-            this.stream = this.client.streamhaar(request, {});
-            log.info(`Start Stream ${this.serverAddress} connected`);
-            this.stream.on('data', (chunk: FloatArrayChunk) => {
-                
-                if (Array.isArray(chunk.data)) {
-                    const filteredData = chunk.data.filter((item): item is number => typeof item === 'number');
-                    this.onDataCallbacks.forEach(({ callback }) => callback(filteredData));
-                }
-            });
+            const request: ChannelsArray = { channels };
+            try {
+                this.stream = this.client.streamhaar(request, {});
+                log.info(`Start Stream ${this.serverAddress} connected`);
 
-            this.stream.on('error', (err: Error) => {
-                log.error('stream error:', this.serverAddress, err);
-            })
+                this.startHealthCheck(); // Start health check when stream starts
+
+                this.stream.on('data', (chunk: FloatArrayChunk) => {
+                    try {
+                        if (Array.isArray(chunk.data)) {
+                            const filteredData = chunk.data.filter((item): item is number => typeof item === 'number');
+                            this.onDataCallbacks.forEach(({ callback }) => callback(filteredData));
+                        }
+                    } catch (err) {
+                        log.error(`Error in data handler for ${this.serverAddress}: ${err?.stack || err}`);
+                    }
+                });
+
+                this.stream.on('error', (err: Error) => {
+                    if (err.message && err.message.includes('CANCELLED: Cancelled on client')) {
+                        log.info(`Stream cancelled by client for ${this.serverAddress} (${this.id_intan})`);
+                    } else {
+                        log.error(`stream error on ${this.serverAddress} (${this.id_intan}): ${err?.stack || err}`);
+                    }
+                    this.stopStreamData();
+                });
+
+                this.stream.on('end', () => {
+                    log.info(`Stream ended for ${this.serverAddress}`);
+                    this.stopStreamData();
+                });
+            } catch (err) {
+                throw new Error(
+                    `IntanClient stream error for ${this.serverAddress} (${this.id_intan}): ${err?.stack || err}`
+                );
+            }
         }
         this.isStartStream = false;
     }
@@ -96,7 +148,11 @@ export class IntanClient {
         return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
     }
 
-    async streamDataFromFile(filePath: string, interval: number = 1000, nb_channel: number = 32) {
+    async streamRecordedData() {
+        await this.streamDataFromFile(this.recorded_file, 23.4, this.recorded_nb_channels);
+    }
+
+    private async streamDataFromFile(filePath: string, interval: number = 1000, nb_channel: number = 32) {
         if (this.isStartStream) return;
         this.isStartStream = true;
 
@@ -169,6 +225,18 @@ export class IntanClient {
         if (this.stream) {
             this.stream.cancel(); // Close the stream
             this.stream = null; // Clear the stream reference
+        }
+        this.stopHealthCheck(); // Stop health check when stream stops
+    }
+
+    onMaintenanceChange(callback: (status: boolean) => void) {
+        this.maintenanceCallbacks.push(callback);
+    }
+
+    setMaintenance(status: boolean) {
+        if (this.maintenance !== status) {
+            this.maintenance = status;
+            this.maintenanceCallbacks.forEach(cb => cb(status));
         }
     }
 }

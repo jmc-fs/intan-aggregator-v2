@@ -1,6 +1,6 @@
 import { Application, Router, Context } from "https://deno.land/x/oak/mod.ts";
-import { MongoClient } from "https://deno.land/x/mongo@v0.31.1/mod.ts";
-import { Server } from "https://deno.land/x/socket_io@0.2.0/mod.ts";
+import { MongoClient } from "https://deno.land/x/mongo@v0.34.0/mod.ts";
+import { Server } from "https://deno.land/x/socket_io@0.2.1/mod.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { IntanController, IntanChannel } from "./IntanController.ts";
 import { IntanClient } from "./IntanClient.ts";
@@ -64,12 +64,10 @@ router.get("/controllers", async (context: Context) => {
 
   try {
     const controllers: IntanController[] = await controllersCollection.find({}).toArray();
-    // Ensure every controller has a maintenance attribute
     controllers.forEach(controller => {
-      if (controller.maintenance === undefined) {
-        controller.maintenance = false; // or your preferred default
-      }
+      controller.maintenance = false;
     });
+
     // Use Promise.all to wait for all async operations inside the loop
     await Promise.all(controllers.map(async (controller) => {
       const existingControllerIndex = activeControllers.findIndex(activeController => 
@@ -79,26 +77,44 @@ router.get("/controllers", async (context: Context) => {
       if (controller.online) {
         if (existingControllerIndex === -1) {
           const grpcClient = new IntanClient(controller.address, controller._id.toString());
+          grpcClient.recorded_file = controller.recorded_file;
+          grpcClient.recorded_nb_channels = controller.recorded_nb_channels;
           await grpcClient.loadProtobuf();
           grpcClient.channels = await grpcClient.channelAvailable();
           if (grpcClient.channels.length == 0) {
-            controller.maintenance = true;
             grpcClient.maintenance = true;
             const numberOfChannels = 32;
-            grpcClient.channels = [numberOfChannels,numberOfChannels,numberOfChannels,numberOfChannels];
+            const numElements = Math.ceil(controller.recorded_nb_channels / numberOfChannels);
+
+            grpcClient.channels = Array(numElements).fill(numberOfChannels);
             //grpcClient.generateRandomDataStream(23.4, numberOfChannels*grpcClient.channels.length);
-            grpcClient.streamDataFromFile("./wavelet_signal.bin", 23.4, numberOfChannels*grpcClient.channels.length);
-            activeControllers.push(grpcClient);
+            controller.maintenance = true;
+            grpcClient.streamRecordedData();
           } else {
-            controller.maintenance = false;
             grpcClient.startStreamData();
-            activeControllers.push(grpcClient);
           }
           controller.channels = grpcClient.channels;
+          activeControllers.push(grpcClient);
+
+          // After creating a new IntanClient (grpcClient), add:
+          grpcClient.onMaintenanceChange((status) => {
+              log.debug(`Maintenance status changed for ${grpcClient.id_intan}: ${status}`);
+              io.emit('maintenance', {
+                  id_intan: grpcClient.id_intan,
+                  maintenance: status
+              });
+          });
         } else {
-          controller.channels = activeControllers[existingControllerIndex].channels;
-          controller.maintenance = activeControllers[existingControllerIndex].maintenance;
-          activeControllers[existingControllerIndex].startStreamData();
+          activeControllers[existingControllerIndex].recorded_file = controller.recorded_file;
+          activeControllers[existingControllerIndex].recorded_nb_channels = controller.recorded_nb_channels;
+          const nb_channels = await activeControllers[existingControllerIndex].channelAvailable();
+          if (nb_channels.length > 0) {
+            controller.channels = nb_channels
+            activeControllers[existingControllerIndex].startStreamData();
+          } else {
+            controller.channels = activeControllers[existingControllerIndex].channels;
+            controller.maintenance = true;
+          }
         }
       } else {
         if (existingControllerIndex !== -1) {
@@ -175,6 +191,12 @@ io.on("connection", (socket) => {
       activeControllers[i].removeCallback(socket.id);
     }
   });
+});
+
+import process from "node:process";
+
+process.on('unhandledRejection', (reason: any, promise) => {
+    log.debug('Unhandled Rejection:', reason?.message || reason);
 });
 
 const app = new Application();

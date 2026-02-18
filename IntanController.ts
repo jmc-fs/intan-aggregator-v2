@@ -8,6 +8,8 @@ export interface IntanController {
     channels: Array<number>,
     default_mea: number,
     default_electrodes: Array<number>,
+    recorded_file: string,
+    recorded_nb_channels: number,
     maintenance: boolean,
 }
 
