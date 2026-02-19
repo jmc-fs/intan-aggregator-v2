@@ -28,14 +28,23 @@ export class IntanClient {
   private async streamRecordedData() {
     try {
       const data = await Deno.readFile(this.recorded_file);
-      if (data.length > 100 * 1024 * 1024) throw new Error("File too large");
-      const floatData = new Float32Array(data.buffer, data.byteOffset, data.byteLength / 4);
-      const nb_channel = this.recorded_nb_channels || 128;
-      const channel_length = floatData.length / nb_channel;
-      const chunkSize = 160;
 
+      // No file size limit — file may be large, Deno handles it fine
+
+      // Math.floor prevents RangeError when file size is not a multiple of 4 bytes
+      const floatData = new Float32Array(
+        data.buffer,
+        data.byteOffset,
+        Math.floor(data.byteLength / 4)
+      );
+
+      const nb_channel = this.recorded_nb_channels || 128;
+      const channel_length = Math.floor(floatData.length / nb_channel);
+      const chunkSize = 160;
       let offset = 0;
+
       const sendChunk = () => {
+        // FIX 3: reset offset when we reach the end (loop the file)
         if (offset + chunkSize > channel_length) offset = 0;
 
         const chunk: number[] = [];
@@ -44,27 +53,40 @@ export class IntanClient {
           chunk.push(...floatData.subarray(start, start + chunkSize));
         }
 
+        // FIX 3: actually advance offset so we don't replay the same samples forever
+        offset += chunkSize;
+
         this.spikeCount = chunk.filter(v => Math.abs(v) > 50).length;
         if (this.spikeCount > 800) this.setMaintenance(true);
-
         this.onDataCallbacks.forEach(({ callback }) => callback(chunk));
       };
 
-      this.stream = { cancel: () => clearInterval(setInterval(sendChunk, 1000)) };
+      // FIX 2: start the interval immediately and store the ID for cancel()
+      // (previously the interval was only created inside cancel(), so it never ran)
+      const intervalId = setInterval(sendChunk, 1000);
+      this.stream = { cancel: () => clearInterval(intervalId) };
+
+      log.info(
+        `[${this.id_intan}] Streaming from file: ${this.recorded_file} ` +
+        `(${floatData.length} samples, ${nb_channel} channels)`
+      );
     } catch (e) {
-      log.warn(`Recorded file error - using random data`);
+      log.warn(`[${this.id_intan}] Recorded file error - using random data`);
+      log.error(`[${this.id_intan}] ACTUAL ERROR: ${e}`);
       this.generateRandomDataStream();
     }
   }
 
   private generateRandomDataStream() {
     const intervalId = setInterval(() => {
-      const randomData = Array.from({ length: 160 * 32 }, () => (Math.random() - 0.5) * 100);
+      const randomData = Array.from(
+        { length: 160 * 32 },
+        () => (Math.random() - 0.5) * 100
+      );
       this.spikeCount = randomData.filter(v => Math.abs(v) > 50).length;
       if (this.spikeCount > 800) this.setMaintenance(true);
       this.onDataCallbacks.forEach(({ callback }) => callback(randomData));
     }, 1000);
-
     this.stream = { cancel: () => clearInterval(intervalId) };
   }
 
