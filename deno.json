@@ -1,6 +1,16 @@
 {
   "tasks": {
-    "dev": "deno run --watch main.ts",
-    "proto": "npx proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=proto/ protos/*.proto"
+    "dev":   "deno run --watch --allow-all main.ts",
+    "start": "deno run --allow-all main.ts",
+    "fake":  "deno run --allow-all fake-intan-service.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "indentWidth": 2,
+    "singleQuote": false
   }
 }

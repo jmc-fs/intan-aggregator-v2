@@ -1,2 +1,18 @@
-logs.txt
+# Large binary recording file — share separately, do not commit
 wavelet_signal.bin
+
+# Runtime logs
+logs.txt
+
+# Deno npm cache
+node_modules/
+.deno/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.suo
+*.user
