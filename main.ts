@@ -75,11 +75,11 @@ const io = new Server({
 const controllers = [
   {
     _id: "sim-0",
-    name: "MEA 1",
+    name: "Controller 1",
     address: "localhost:5051",
     online: true,
     default_mea: 0,
-    channels: Array.from({ length: 32 }, (_, i) => i),           // ch 0–31
+    channels: Array.from({ length: 4 }, (_, i) => 32), // 4 headstages with 32 channels each
     default_electrodes: Array.from({ length: 8 }, (_, i) => i),  // first 8
     recorded_file: "wavelet_signal.bin",
     recorded_nb_channels: 128,
@@ -87,36 +87,36 @@ const controllers = [
   },
   {
     _id: "sim-1",
-    name: "MEA 2",
+    name: "Controller 2",
     address: "localhost:5052",
     online: true,
     default_mea: 1,
-    channels: Array.from({ length: 32 }, (_, i) => i + 32),      // ch 32–63
-    default_electrodes: Array.from({ length: 8 }, (_, i) => i + 32),
+    channels: Array.from({ length: 4 }, (_, i) => 32), // 4 headstages with 32 channels each
+    default_electrodes: Array.from({ length: 8 }, (_, i) => i),
     recorded_file: "wavelet_signal.bin",
     recorded_nb_channels: 128,
     maintenance: false,
   },
   {
     _id: "sim-2",
-    name: "MEA 3",
+    name: "Controller 3",
     address: "localhost:5053",
     online: true,
     default_mea: 2,
-    channels: Array.from({ length: 32 }, (_, i) => i + 64),      // ch 64–95
-    default_electrodes: Array.from({ length: 8 }, (_, i) => i + 64),
+    channels: Array.from({ length: 4 }, (_, i) => 32), // 4 headstages with 32 channels each
+    default_electrodes: Array.from({ length: 8 }, (_, i) => i),
     recorded_file: "wavelet_signal.bin",
     recorded_nb_channels: 128,
     maintenance: false,
   },
   {
     _id: "sim-3",
-    name: "MEA 4",
+    name: "Controller 4",
     address: "localhost:5054",
     online: true,
     default_mea: 3,
-    channels: Array.from({ length: 32 }, (_, i) => i + 96),      // ch 96–127
-    default_electrodes: Array.from({ length: 8 }, (_, i) => i + 96),
+    channels: Array.from({ length: 4 }, (_, i) => 32), // 4 headstages with 32 channels each
+    default_electrodes: Array.from({ length: 8 }, (_, i) => i),
     recorded_file: "wavelet_signal.bin",
     recorded_nb_channels: 128,
     maintenance: false,
@@ -182,6 +182,10 @@ router.get("/streams", (ctx) => {
       listeners: activeClients[i]?.listenerCount ?? 0,
     })),
   };
+});
+
+router.get("/sample", (ctx) => {
+  ctx.response.body = { numbersample: 160*NUMBER_X_SAMPLE };
 });
 
 // ─── Socket.IO Events ─────────────────────────────────────────────────────────
